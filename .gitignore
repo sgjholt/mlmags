@@ -137,6 +137,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# raw unprocessed data
 data/*
 
+# annoying MacOS stuff
 **/.DS_Store
