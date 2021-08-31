@@ -1,42 +1,45 @@
 """utils for data cleansing.
 """
 
+import numpy as np
 import pandas as pd
+from typing import Tuple 
 
-def col_to_dt(df: pd.DataFrame, name: str):
+
+def load_vel_mod(path) -> np.ndarray:
     """[summary]
 
     Args:
-        df (pd.DataFrame): [description]
-        name (str): [description]
-    """
-    df[name] = pd.to_datetime(df[name].values, unit='ns', utc=True)
-
-
-def clean_mag_table(df: pd.DataFrame, min_nsta: int, max_std_err: float) -> pd.DataFrame:
-    """[summary]
-
-    Args:
-        df (pd.DataFrame): [description]
+        path ([type]): [description]
 
     Returns:
-        pd.DataFrame: [description]
+        np.ndarray: [description]
     """
-    conds = (df["Mw-Nobs"] >= min_nsta) & (df["Mw-std-err"] <= max_std_err)
-    mag_table = df[conds].copy(deep=True).rename(columns={"UTC": "otime"})
-    col_to_dt(mag_table, 'otime')
-    return mag_table
+    return np.loadtxt(path, skiprows=1)
 
-def clean_fit_table(df: pd.DataFrame, min_dep: float, max_fc: float) -> pd.DataFrame:
+
+def get_source_params(
+    vel_model: np.ndarray, depth: np.ndarray, phase: str
+    ) -> Tuple[np.ndarray, np.ndarray]:
     """[summary]
 
     Args:
-        df (pd.DataFrame): [description]
+        vel_model (np.ndarray): [description]
+        depth (np.ndarray): [description]
+        phase (str): [description]
+
+    Raises:
+        ValueError: [description]
 
     Returns:
-        pd.DataFrame: [description]
+        Tuple[np.ndarray, np.ndarray]: [description]
     """
-    conds = (df["dep"] >= min_dep & df["fc"] <= max_fc)
-    fit_table = df[conds].copy(deep=True)
-    col_to_dt(fit_table, 'otime')
-    return fit_table
+    vels = None
+    if phase.upper() == "P":
+        vels = np.interp(depth, vel_model[:, 0], vel_model[:, 1])
+    if phase.upper() == "S":
+        vels = np.interp(depth, vel_model[:, 0], vel_model[:, 2])
+    if vels is None:    
+        raise ValueError("Invalid phase given, choose P or S")
+    dens = np.interp(depth, vel_model[:, 0], vel_model[:, 3])
+    return vels, dens
